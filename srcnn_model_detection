@@ -1,0 +1,101 @@
+import os
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.preprocessing.image import img_to_array, load_img
+from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
+from sklearn.model_selection import train_test_split
+from tensorflow.keras.utils import Sequence
+
+hr_dir = r'path\to\high_resolution_images'
+lr_dirs = [
+    r'path\to\low_resolution_images_set1',
+    r'path\to\low_resolution_images_set2',
+    r'path\to\low_resolution_images_set3',
+    r'path\to\low_resolution_images_set4',
+    r'path\to\low_resolution_images_set5'
+]
+
+
+def load_images_and_labels(hr_dir, lr_dirs):
+    images = []
+    labels = []
+    # Load HR images
+    for filename in os.listdir(hr_dir):
+        img = load_img(os.path.join(hr_dir, filename), target_size=(64, 64))
+        images.append(img_to_array(img))
+        labels.append(0) 
+    # Load LR images from multiple directories
+    for lr_dir in lr_dirs:
+        for filename in os.listdir(lr_dir):
+            img = load_img(os.path.join(lr_dir, filename), target_size=(64, 64))
+            images.append(img_to_array(img))
+            labels.append(1)  
+    return np.array(images), np.array(labels)
+
+images, labels = load_images_and_labels(hr_dir, lr_dirs)
+
+images = images / 255.0
+
+labels = to_categorical(labels, num_classes=2)
+
+train_images, test_images, train_labels, test_labels = train_test_split(images, labels, test_size=0.2, random_state=42)
+valid_images, test_images, valid_labels, test_labels = train_test_split(test_images, test_labels, test_size=0.5, random_state=42)
+
+print(f'Train set: {train_images.shape}, {train_labels.shape}')
+print(f'Validation set: {valid_images.shape}, {valid_labels.shape}')
+print(f'Test set: {test_images.shape}, {test_labels.shape}')
+
+class CustomDataGenerator(Sequence):
+    def __init__(self, images, labels, batch_size=32, shuffle=True):
+        self.images = images
+        self.labels = labels
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+        self.indices = np.arange(len(self.images))
+        self.on_epoch_end()
+
+    def __len__(self):
+        return int(np.floor(len(self.images) / self.batch_size))
+
+    def __getitem__(self, index):
+        indices = self.indices[index * self.batch_size:(index + 1) * self.batch_size]
+        batch_images = [self.images[i] for i in indices]
+        batch_labels = [self.labels[i] for i in indices]
+        return np.array(batch_images), np.array(batch_labels)
+
+    def on_epoch_end(self):
+        if self.shuffle:
+            np.random.shuffle(self.indices)
+
+train_generator = CustomDataGenerator(train_images, train_labels, batch_size=32)
+valid_generator = CustomDataGenerator(valid_images, valid_labels, batch_size=32)
+test_generator = CustomDataGenerator(test_images, test_labels, batch_size=32, shuffle=False)
+
+def build_classification_model():
+    model = Sequential()
+    model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(64, 64, 3)))
+    model.add(MaxPooling2D((2, 2)))
+    model.add(Conv2D(64, (3, 3), activation='relu'))
+    model.add(MaxPooling2D((2, 2)))
+    model.add(Conv2D(128, (3, 3), activation='relu'))
+    model.add(MaxPooling2D((2, 2)))
+    model.add(Flatten())
+    model.add(Dense(128, activation='relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(2, activation='softmax'))
+    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+    return model
+
+classification_model = build_classification_model()
+classification_model.summary()
+
+model = classification_model.fit(
+    train_generator,
+    validation_data=valid_generator,
+    epochs=20
+)
+
+classification_model.save('classification_model.keras')
+
