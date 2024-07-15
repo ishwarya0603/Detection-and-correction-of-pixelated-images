@@ -1,0 +1,13 @@
+The primary objective of this project was to detect and correct pixelated images using a Super-Resolution Convolutional Neural Network (SRCNN).
+By employing a deeper SRCNN model, we aimed to achieve higher image quality in terms of resolution and perceptual fidelity.
+We developed a custom image generator to facilitate the efficient loading and preprocessing of high-resolution and low-resolution image pairs, which is crucial for training the SRCNN model.
+
+Training and Evaluation:
+
+We trained the model using a substantial dataset of high-resolution and low-resolution image pairs, and validated its performance using separate validation data.
+The model training included the use of early stopping and learning rate scheduling to optimize training efficiency and performance.
+The model's performance was evaluated based on the PSNR (Peak Signal-to-Noise Ratio), indicating the quality of the reconstructed high-resolution images.
+
+Results: 
+The training and validation loss, as well as the PSNR metrics, were plotted to visualize the model's performance over the epochs. This provided insights into the model's learning progression and its ability to generalize to unseen data.
+
