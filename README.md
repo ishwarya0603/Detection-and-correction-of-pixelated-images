@@ -4,6 +4,51 @@ The primary objective of using a Super-Resolution Convolutional Neural Network (
 
 https://github.com/user-attachments/assets/788f8f45-4892-499c-bee9-ec750798e875
 
+DETECTION:
+
+The below code loads images and assigns them labels, making it suitable for detection tasks.
+
+```
+def load_images_and_labels(hr_dir, lr_dirs):
+    images = []
+    labels = []
+    # Load HR images
+    for filename in os.listdir(hr_dir):
+        img = load_img(os.path.join(hr_dir, filename), target_size=(64, 64))
+        images.append(img_to_array(img))
+        labels.append(0)  # 0 for non-pixelated (HR)
+    # Load LR images from multiple directories
+    for lr_dir in lr_dirs:
+        for filename in os.listdir(lr_dir):
+            img = load_img(os.path.join(lr_dir, filename), target_size=(64, 64))
+            images.append(img_to_array(img))
+            labels.append(1)  # 1 for pixelated (LR)
+    return np.array(images), np.array(labels)
+
+images, labels = load_images_and_labels(hr_dir, lr_dirs)
+```
+Create the SRCNN Detection model:
+```
+def build_classification_model():
+    model = Sequential()
+    model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(64, 64, 3)))
+    model.add(MaxPooling2D((2, 2)))
+    model.add(Conv2D(64, (3, 3), activation='relu'))
+    model.add(MaxPooling2D((2, 2)))
+    model.add(Conv2D(128, (3, 3), activation='relu'))
+    model.add(MaxPooling2D((2, 2)))
+    model.add(Flatten())
+    model.add(Dense(128, activation='relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(2, activation='softmax'))
+    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+    return model
+
+classification_model = build_classification_model()
+```
+
+DETECTION:
+
 Import necessary libraries:
 ```
 import os
